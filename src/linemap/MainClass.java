@@ -16,19 +16,41 @@ public class MainClass {
 
 	public static void main(String[] args) {
 
-		// List<CoordinatePoint> shape = readCoordinates("C:\\Users\\Aditya\\Desktop\\shapeCoordinates.txt");
-		//
-		// List<CoordinatePoint> scaledShapeCoordinates = new ArrayList<>();
-		// for (int i = 0; i < shape.size(); i++) {
-		// scaledShapeCoordinates.add(scaleCoorinatePointToGridScale(shape.get(i)));
-		// }
-		//
-		// writeCsvFileForCoordinate(scaledShapeCoordinates, "C:\\Users\\Aditya\\Desktop\\scaledShapeCoordinates.csv",
-		// "X,Y", "\n", ",");
-		// writeCsvFileForCrossPoint(getCrossPointsForShapePoints(scaledShapeCoordinates),
-		// "C:\\Users\\Aditya\\Desktop\\crossPoints.csv", "X,Y", "\n", ",");
+		List<CoordinatePoint> stopCoordinates = readCoordinates("C:\\Users\\Aditya\\Desktop\\stopCoordinates.txt");
+		List<GridPoint> stopGridPoints = new ArrayList<>();
+		for (CoordinatePoint stop : stopCoordinates) {
+			stopGridPoints.add(mapCoordinateToGrid(stop));
+		}
 
-		System.out.println(getGridPointsBetweeenCrossingPoints(new CrossPoint(21.315, 16),new CrossPoint(21.4441, 13)));
+		writeCsvFileForGrid(stopGridPoints, "C:\\Users\\Aditya\\Desktop\\stops.csv", "X,Y", "\n", ",");
+		
+		
+		
+		List<CoordinatePoint> shape = readCoordinates("C:\\Users\\Aditya\\Desktop\\shapeCoordinates.txt");
+
+		List<CoordinatePoint> scaledShapeCoordinates = new ArrayList<>();
+		for (int i = 0; i < shape.size(); i++) {
+			scaledShapeCoordinates.add(scaleCoorinatePointToGridScale(shape.get(i)));
+		}
+		writeCsvFileForCoordinate(scaledShapeCoordinates, "C:\\Users\\Aditya\\Desktop\\scaledActualRoute.csv", "X,Y", "\n", ",");
+
+		List<CrossPoint> crossPointsForShapePoints = getCrossPointsForShapePoints(scaledShapeCoordinates);
+		writeCsvFileForCrossPoint(crossPointsForShapePoints, "C:\\Users\\Aditya\\Desktop\\crossPoints.csv", "X,Y", "\n", ",");
+
+		List<GridPoint> finalRoutePath = new ArrayList<>();
+		for (int i = 1; i < crossPointsForShapePoints.size(); i++) {
+			//adding the first stop
+			if(i == 1){finalRoutePath.add(stopGridPoints.get(0));}
+			
+			List<GridPoint> gridPointsBetweeenCrossingPoints = getGridPointsBetweeenCrossingPoints(crossPointsForShapePoints.get(i),
+					crossPointsForShapePoints.get(i - 1));
+			finalRoutePath.addAll(gridPointsBetweeenCrossingPoints);
+			
+			//adding last stop
+			if(i == crossPointsForShapePoints.size() - 1){finalRoutePath.add(stopGridPoints.get(stopGridPoints.size()));}
+		}
+
+		writeCsvFileForGrid(finalRoutePath, "C:\\Users\\Aditya\\Desktop\\finalRoutePath.csv", "X,Y", "\n", ",");
 
 	}
 
@@ -41,10 +63,7 @@ public class MainClass {
 			CoordinatePoint pointDown;
 			boolean reversed = false;
 
-			if (scaledShapePoints.get(i).getX() > scaledShapePoints.get(i - 1).getX()) { // ith
-																							// one
-																							// is
-																							// above
+			if (scaledShapePoints.get(i).getX() > scaledShapePoints.get(i - 1).getX()) { // ith one is above
 				pointUp = scaledShapePoints.get(i);
 				pointDown = scaledShapePoints.get(i - 1);
 			} else {
@@ -53,17 +72,15 @@ public class MainClass {
 				reversed = true;
 			}
 			List<CrossPoint> tempList = new ArrayList<>();
-			if (pointUp.getXWholeNumberPart() != pointDown.getXWholeNumberPart()
-					&& pointUp.getYWholeNumberPart() != pointDown.getYWholeNumberPart()) {
+			if (pointUp.getXWholeNumberPart() != pointDown.getXWholeNumberPart() && pointUp.getYWholeNumberPart() != pointDown.getYWholeNumberPart()) {
 				// both vertical and horizontal lines are crossed
 				crossPointA = new CrossPoint(pointUp.getXWholeNumberPart(), pointUp.getY());
-				crossPointB = new CrossPoint(pointDown.getX(),
-						pointDown.getYWholeNumberPart() + (pointUp.getY() > pointDown.getY() ? 1 : 0));
+				crossPointB = new CrossPoint(pointDown.getX(), pointDown.getYWholeNumberPart() + (pointUp.getY() > pointDown.getY() ? 1 : 0));
 				tempList.add(crossPointA);
 				tempList.add(crossPointB);
 			} else if (pointUp.getXWholeNumberPart() != pointDown.getXWholeNumberPart()) {
 				// Only horizontal Line is crossed
-				if (pointUp.getXWholeNumberPart() - pointDown.getXWholeNumberPart() == 1) {
+				if (Math.abs(pointUp.getXWholeNumberPart() - pointDown.getXWholeNumberPart()) == 1) {
 					// only one horizontal line is crossed
 					crossPointA = new CrossPoint(pointUp.getXWholeNumberPart(), pointUp.getY());
 					tempList.add(crossPointA);
@@ -76,17 +93,14 @@ public class MainClass {
 				}
 			} else if (pointUp.getYWholeNumberPart() != pointDown.getYWholeNumberPart()) { // Only Vertical Line is
 																							// crossed
-				if (pointUp.getYWholeNumberPart() - pointDown.getYWholeNumberPart() == 1) {
+				if (Math.abs(pointUp.getYWholeNumberPart() - pointDown.getYWholeNumberPart()) == 1) {
 					// only one vertical line is crossed
-					crossPointA = new CrossPoint(pointUp.getX(),
-							pointUp.getYWholeNumberPart() + (pointDown.getY() > pointUp.getY() ? 1 : 0));
+					crossPointA = new CrossPoint(pointUp.getX(), pointUp.getYWholeNumberPart() + (pointDown.getY() > pointUp.getY() ? 1 : 0));
 					tempList.add(crossPointA);
 				} else {
 					// multiple vertical lines are crossed
-					crossPointA = new CrossPoint(pointUp.getX(),
-							pointUp.getYWholeNumberPart() + (pointDown.getY() > pointUp.getY() ? 1 : 0));
-					crossPointB = new CrossPoint(pointDown.getX(),
-							pointDown.getYWholeNumberPart() + (pointDown.getY() > pointUp.getY() ? 0 : 1));
+					crossPointA = new CrossPoint(pointUp.getX(), pointUp.getYWholeNumberPart() + (pointDown.getY() > pointUp.getY() ? 1 : 0));
+					crossPointB = new CrossPoint(pointDown.getX(), pointDown.getYWholeNumberPart() + (pointDown.getY() > pointUp.getY() ? 0 : 1));
 					tempList.add(crossPointA);
 					tempList.add(crossPointB);
 				}
@@ -163,14 +177,14 @@ public class MainClass {
 	}
 
 	private static GridPoint mapCoordinateToGrid(CoordinatePoint coordinate) {
-		int gridX = (int) Math.round(((((coordinate.getX() - 22.000000) * 100000) - 43519) / 22244) * 100);
-		int gridY = (int) Math.round(((((coordinate.getY() - 88.000000) * 100000) - 24170) / 29373) * 100);
+		int gridX = (int) Math.round(((((coordinate.getX() - 22.000000) * 100000) - 43519) / 22244) * 25);
+		int gridY = (int) Math.round(((((coordinate.getY() - 88.000000) * 100000) - 24170) / 29373) * 25);
 		return new GridPoint(gridX, gridY);
 	}
 
 	private static CoordinatePoint scaleCoorinatePointToGridScale(CoordinatePoint coordinatePoint) {
-		double scaledX = (double) ((((coordinatePoint.getX() - 22.000000) * 100000) - 43519) / 22244) * 100;
-		double scaledY = (double) ((((coordinatePoint.getY() - 88.000000) * 100000) - 24170) / 29373) * 100;
+		double scaledX = (double) ((((coordinatePoint.getX() - 22.000000) * 100000) - 43519) / 22244) * 25;
+		double scaledY = (double) ((((coordinatePoint.getY() - 88.000000) * 100000) - 24170) / 29373) * 25;
 		return new CoordinatePoint(scaledX, scaledY);
 	}
 
@@ -193,8 +207,7 @@ public class MainClass {
 		return returnList;
 	}
 
-	public static void writeCsvFileForGrid(List<GridPoint> list, String fileName, String FILE_HEADER,
-			String NEW_LINE_SEPARATOR, String COMMA_DELIMITER) {
+	public static void writeCsvFileForGrid(List<GridPoint> list, String fileName, String FILE_HEADER, String NEW_LINE_SEPARATOR, String COMMA_DELIMITER) {
 
 		FileWriter fileWriter = null;
 
@@ -235,8 +248,8 @@ public class MainClass {
 		}
 	}
 
-	public static void writeCsvFileForCoordinate(List<CoordinatePoint> list, String fileName, String FILE_HEADER,
-			String NEW_LINE_SEPARATOR, String COMMA_DELIMITER) {
+	public static void writeCsvFileForCoordinate(List<CoordinatePoint> list, String fileName, String FILE_HEADER, String NEW_LINE_SEPARATOR,
+			String COMMA_DELIMITER) {
 
 		FileWriter fileWriter = null;
 
@@ -277,8 +290,8 @@ public class MainClass {
 		}
 	}
 
-	public static void writeCsvFileForCrossPoint(List<CrossPoint> list, String fileName, String FILE_HEADER,
-			String NEW_LINE_SEPARATOR, String COMMA_DELIMITER) {
+	public static void writeCsvFileForCrossPoint(List<CrossPoint> list, String fileName, String FILE_HEADER, String NEW_LINE_SEPARATOR,
+			String COMMA_DELIMITER) {
 
 		FileWriter fileWriter = null;
 
@@ -359,27 +372,34 @@ public class MainClass {
 			GridPoint pointA;
 			GridPoint pointB;
 			if (crossPointA.getCrossingAxis() == 'H') { // points are up - down
-				if ((1 - crossPointA.getDecimalNumberPart()) < (1 - crossPointB.getDecimalNumberPart())) {
-					pointA = new GridPoint((long) crossPointA.getX(), Math.round(crossPointA.getY()));
+				if ((long) crossPointA.getY() != (long) crossPointB.getY()) {
+					pointA = new GridPoint((long) crossPointA.getX(),
+							(crossPointB.getY() > crossPointA.getY()) ? ((long) crossPointA.getY()) + 1 : ((long) crossPointA.getY()));
 					pointB = new GridPoint((long) crossPointB.getX(), pointA.getY());
 				} else {
-					pointB = new GridPoint((long) crossPointB.getX(), Math.round(crossPointB.getY()));
-					pointA = new GridPoint((long) crossPointA.getX(), pointB.getY());
+					pointA = new GridPoint((long) crossPointA.getX(),
+							((Math.abs(0.5 - crossPointA.getDecimalNumberPart()) > Math.abs(0.5 - crossPointB.getDecimalNumberPart()))
+									? Math.round(crossPointA.getY()) : Math.round(crossPointB.getY())));
+					pointB = new GridPoint((long) crossPointB.getX(), pointA.getY());
 				}
 
 			} else { // points are left - right
-
-				if (crossPointA.getDecimalNumberPart() +crossPointB.getDecimalNumberPart() > 1) {
-					pointA = new GridPoint((long)Math.ceil(crossPointA.getX()), (long) crossPointA.getY());
-					pointB = new GridPoint((long)Math.ceil(crossPointB.getX()), (long) crossPointB.getY());
+				if ((long) crossPointA.getX() != (long) crossPointB.getX()) {
+					pointA = new GridPoint((crossPointB.getX() > crossPointA.getX()) ? ((long) crossPointA.getX()) + 1 : ((long) crossPointA.getX()),
+							(long) crossPointA.getY());
+					pointB = new GridPoint(pointA.getX(), (long) crossPointB.getY());
 				} else {
-					pointA = new GridPoint((long)Math.floor(crossPointA.getX()), (long) crossPointA.getY());
-					pointB = new GridPoint((long)Math.floor(crossPointB.getX()), (long) crossPointB.getY());
+					pointA = new GridPoint(((Math.abs(0.5 - crossPointA.getDecimalNumberPart()) > Math.abs(0.5 - crossPointB.getDecimalNumberPart()))
+							? Math.round(crossPointA.getX()) : Math.round(crossPointB.getX())), (long) crossPointA.getY());
+					pointB = new GridPoint(pointA.getX(), (long) crossPointB.getY());
 				}
 			}
 			returnList.add(pointA);
 			returnList.add(pointB);
 		}
+//		if(reversed){
+			Collections.reverse(returnList);
+//		}
 		return returnList;
 	}
 
